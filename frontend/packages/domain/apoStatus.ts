@@ -1,0 +1,13 @@
+// src/domain/apoStatus.ts
+export type ApoStatus =
+  | "PENDENTE_ORIENTADOR"
+  | "PENDENTE_COMISSAO"
+  | "PENDENTE_COORDENACAO"
+  | "APROVADA"
+  | "REJEITADA";
+
+export const EM_ANDAMENTO_STATUSES: ApoStatus[] = [
+  "PENDENTE_ORIENTADOR",
+  "PENDENTE_COMISSAO",
+  "PENDENTE_COORDENACAO",
+];
