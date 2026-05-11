@@ -1,6 +1,6 @@
-// src/app/apo/[id]/page.tsx
+// src/app/apo/[id].tsx
 import { router, useLocalSearchParams } from "expo-router";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   Linking,
   Platform,
@@ -17,31 +17,62 @@ import { canApproveApo } from "@/packages/domain/apoRules";
 import { getApoStatusColor } from "@/packages/domain/apoStatusColor";
 import { getApoStatusLabel } from "@/packages/domain/apoStatusLabel";
 import { approveApo, getApoById, rejectApo } from "@/packages/services/apoService";
+import type { Apo } from "@/packages/types/apo";
 
 export default function ApoViewScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { user } = useUser();
   const { width } = useWindowDimensions();
+  const [apo, setApo] = useState<Apo | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const isDesktop =
     (Platform.OS === "web" && width >= 768) || Platform.OS === "windows" || Platform.OS === "macos";
 
-  if (!user) return null;
-  if (!id) return <Text style={{ padding: 24 }}>ID inválido.</Text>;
+  useEffect(() => {
+    if (!id) return;
 
-  const apo = getApoById(id);
-  if (!apo) return <Text style={{ padding: 24 }}>APO não encontrada.</Text>;
+    let isActive = true;
+    setIsLoading(true);
+    setError(null);
 
-  const allowedToApprove = canApproveApo(apo, user);
+    getApoById(id)
+      .then((data) => {
+        if (isActive) setApo(data);
+      })
+      .catch((err) => {
+        if (isActive) setError(err?.message ?? "Erro ao carregar APO");
+      })
+      .finally(() => {
+        if (isActive) setIsLoading(false);
+      });
 
-  const handleApprove = () => {
-    approveApo(apo.id, user.id, user.role);
-    router.replace({ pathname: "/apos/[id]", params: { id: apo.id } });
+    return () => {
+      isActive = false;
+    };
+  }, [id]);
+
+  const handleApprove = async () => {
+    if (!apo || !user?.role) return;
+    try {
+      const updated = await approveApo(apo.id, user.role);
+      setApo(updated);
+      router.replace({ pathname: "/apos/[id]", params: { id: apo.id } });
+    } catch (err) {
+      setError(err?.message ?? "Não foi possível aprovar");
+    }
   };
 
-  const handleReject = () => {
-    rejectApo(apo.id);
-    router.replace({ pathname: "/apos/[id]", params: { id: apo.id } });
+  const handleReject = async () => {
+    if (!apo) return;
+    try {
+      const updated = await rejectApo(apo.id);
+      setApo(updated);
+      router.replace({ pathname: "/apos/[id]", params: { id: apo.id } });
+    } catch (err) {
+      setError(err?.message ?? "Não foi possível rejeitar");
+    }
   };
 
   const Card: React.FC<{ children: React.ReactNode }> = ({ children }) => (
@@ -75,6 +106,14 @@ export default function ApoViewScreen() {
     </View>
   );
 
+  if (!user) return null;
+  if (!id) return <Text style={{ padding: 24 }}>ID inválido.</Text>;
+  if (isLoading) return <Text style={{ padding: 24 }}>Carregando APO...</Text>;
+  if (error) return <Text style={{ padding: 24, color: "#dc2626" }}>{error}</Text>;
+  if (!apo) return <Text style={{ padding: 24 }}>APO não encontrada.</Text>;
+
+  const allowedToApprove = canApproveApo(apo, user);
+
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <ScrollView
@@ -85,7 +124,6 @@ export default function ApoViewScreen() {
         }}
         showsHorizontalScrollIndicator={false}
       >
-        {/* Header */}
         <View
           style={{
             flexDirection: isDesktop ? "row" : "column",
@@ -122,7 +160,6 @@ export default function ApoViewScreen() {
           </View>
         </View>
 
-        {/* Dados principais */}
         <Card>
           <Text style={{ fontWeight: "700", fontSize: 16, marginBottom: 16, color: "#111827" }}>
             Dados principais
@@ -143,7 +180,6 @@ export default function ApoViewScreen() {
           </View>
         </Card>
 
-        {/* Atividades */}
         <Card>
           <Text style={{ fontWeight: "700", fontSize: 16, marginBottom: 16, color: "#111827" }}>
             Atividades
@@ -163,7 +199,6 @@ export default function ApoViewScreen() {
           </Text>
         </Card>
 
-        {/* Arquivos */}
         <Card>
           <Text style={{ fontWeight: "700", fontSize: 16, marginBottom: 16, color: "#111827" }}>
             Arquivos
@@ -189,7 +224,6 @@ export default function ApoViewScreen() {
           ))}
         </Card>
 
-        {/* Ações */}
         {allowedToApprove && (
           <View
             style={{

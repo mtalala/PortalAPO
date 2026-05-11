@@ -1,24 +1,50 @@
 "use client";
 
-import { DEV_USERS } from "@/packages/mocks/users";
+import { authService } from "@/packages/services/authService";
 import type { Role, User } from "@/packages/types/user";
-import { createContext, ReactNode, useContext, useState } from "react";
+import { createContext, ReactNode, useContext, useEffect, useState } from "react";
 
 interface UserContextData {
   user: User | null;
-  role: Role | null;
-  setUserById: (id: string) => void;
+  role: string | null;
+  login: (username: string, password: string) => Promise<boolean>;
+  logout: () => void;
+  isAuthenticated: boolean;
 }
 
 const UserContext = createContext<UserContextData | undefined>(undefined);
 
 export function UserProvider({ children }: { children: ReactNode }) {
-  // Usuário inicial em modo DEV (altere aqui para simular)
-  const [user, setUser] = useState<User | null>(DEV_USERS[0]); // aluno por padrão
+  const [user, setUser] = useState<User | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  const setUserById = (id: string) => {
-    const found = DEV_USERS.find((u) => u.id === id) || null;
-    setUser(found);
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    const role = localStorage.getItem('role');
+    if (token && role) {
+      setUser({ id: '1', name: 'User', role: role as Role }); // Mock user
+      setIsAuthenticated(true);
+    }
+  }, []);
+
+  const login = async (username: string, password: string): Promise<boolean> => {
+    try {
+      const response = await authService.login({ username, password });
+      localStorage.setItem('token', response.token);
+      localStorage.setItem('role', response.role);
+      setUser({ id: '1', name: username, role: response.role as any });
+      setIsAuthenticated(true);
+      return true;
+    } catch (error) {
+      return false;
+    }
+  };
+
+  const logout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('role');
+    setUser(null);
+    setIsAuthenticated(false);
   };
 
   return (
@@ -26,7 +52,9 @@ export function UserProvider({ children }: { children: ReactNode }) {
       value={{
         user,
         role: user?.role ?? null,
-        setUserById,
+        login,
+        logout,
+        isAuthenticated,
       }}
     >
       {children}

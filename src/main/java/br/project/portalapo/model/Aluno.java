@@ -13,4 +13,7 @@ public class Aluno extends Pessoa {
     private String ra;
     private String curso;
     private Integer periodo;
+
+
+
 }

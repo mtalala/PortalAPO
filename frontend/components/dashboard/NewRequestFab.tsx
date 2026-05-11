@@ -6,7 +6,7 @@ export default function NewRequestFab() {
   const router = useRouter();
 
   const handlePress = () => {
-    router.push("/(dashboard)/formulario/page");
+    router.push("/(dashboard)/formulario");
   };
 
   return (

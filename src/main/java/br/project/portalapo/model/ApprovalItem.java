@@ -19,4 +19,8 @@ public class ApprovalItem {
     private RoleAprovacao role;
 
     private boolean approved;
+
+
+
+    public boolean isApproved() { return approved; }
 }

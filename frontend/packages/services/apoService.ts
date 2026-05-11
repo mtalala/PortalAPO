@@ -1,69 +1,61 @@
-// src/services/apoService.ts
-import { apos } from "@/packages/data/apos";
+import request from "@/packages/services/api";
 import type { Apo } from "@/packages/types/apo";
 import type { Role } from "@/packages/types/user";
 
-let apoState: Apo[] = [...apos];
+const APO_PATH = "/apos";
 
-export function getApos(): Apo[] {
-  return apoState;
+export async function getApos(): Promise<Apo[]> {
+  return request<Apo[]>(APO_PATH);
 }
 
-export function getApoById(id: string): Apo | null {
-  return apoState.find((a) => a.id === id) ?? null;
+export async function getApoById(id: string): Promise<Apo> {
+  return request<Apo>(`${APO_PATH}/${id}`);
 }
 
-export function approveApo(
-  apoId: string,
-  userId: string,
-  role: Role
-): void {
-  const apo = getApoById(apoId);
-  if (!apo) return;
+export async function createApo(apo: Omit<Apo, "id">): Promise<Apo> {
+  return request<Apo>(APO_PATH, {
+    method: "POST",
+    body: JSON.stringify(apo),
+  });
+}
 
-  // evita aprovação duplicada por mesmo usuário/papel
-  const alreadyApproved = apo.approvals.some(
-    (a) => a.userId === userId && a.role === role
-  );
-  if (alreadyApproved) return;
-
-  apo.approvals.push({ userId, role, approved: true });
-
+export async function approveApo(id: string, role: Role): Promise<Apo> {
   switch (role) {
-    case "orientador": {
-      apo.status = "PENDENTE_COMISSAO";
-      return;
-    }
+    case "orientador":
+      return request<Apo>(`${APO_PATH}/${id}/aprovar-orientador`, {
+        method: "POST",
+      });
 
-    case "comissao": {
-      const approvedByCommission = new Set(
-        apo.approvals
-          .filter((a) => a.role === "comissao" && a.approved)
-          .map((a) => a.userId)
-      );
+    case "comissao":
+      return request<Apo>(`${APO_PATH}/${id}/aprovar-comissao`, {
+        method: "POST",
+      });
 
-      if (
-        approvedByCommission.size >=
-        apo.requiredCommissionApprovals
-      ) {
-        apo.status = "PENDENTE_COORDENACAO";
-      }
-      return;
-    }
-
-    case "coordenador": {
-      apo.status = "APROVADA";
-      return;
-    }
+    case "coordenador":
+      return request<Apo>(`${APO_PATH}/${id}/aprovar-coordenador`, {
+        method: "POST",
+      });
 
     default:
-      return;
+      throw new Error(`Role inválida para aprovação: ${role}`);
   }
 }
 
-export function rejectApo(apoId: string): void {
-  const apo = getApoById(apoId);
-  if (!apo) return;
+export async function rejectApo(id: string): Promise<Apo> {
+  return request<Apo>(`${APO_PATH}/${id}/rejeitar`, {
+    method: "POST",
+  });
+}
 
-  apo.status = "REJEITADA";
+export async function deleteApo(id: number): Promise<void> {
+  return request<void>(`${APO_PATH}/${id}`, {
+    method: "DELETE",
+  });
+}
+
+export async function updateApo(apo: Apo): Promise<Apo> {
+  return request<Apo>(`${APO_PATH}/${apo.id}`, {
+    method: "PUT",
+    body: JSON.stringify(apo),
+  });
 }

@@ -9,15 +9,17 @@ import {
 } from "react-native";
 
 import RequestCardSkeleton from "@/components/dashboard/RequestCardSkeleton";
-import { apos } from "@/packages/data/apos";
+import { getApos } from "@/packages/services/apoService";
+import type { Apo } from "@/packages/types/apo";
 
 function hasCompletedAt(
-  apo: typeof apos[number]
-): apo is typeof apos[number] & { completedAt: string } {
+  apo: Apo
+): apo is Apo & { completedAt: string } {
   return Boolean(apo.completedAt);
 }
 
 export default function HistoricoScreen() {
+  const [apos, setApos] = useState<Apo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { width } = useWindowDimensions();
   const { user } = useUser();
@@ -29,17 +31,26 @@ export default function HistoricoScreen() {
   };
 
   useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 700);
-    return () => clearTimeout(timer);
+    let isActive = true;
+    getApos()
+      .then((data) => {
+        if (isActive) setApos(data);
+      })
+      .catch(() => {
+        if (isActive) setApos([]);
+      })
+      .finally(() => {
+        if (isActive) setIsLoading(false);
+      });
+    return () => {
+      isActive = false;
+    };
   }, []);
 
   if (!user) return null;
 
   const completedApos = apos
-    .filter(
-      (apo) =>
-        (apo.status === "APROVADA" || apo.status === "REJEITADA")
-    )
+    .filter((apo) => apo.status === "APROVADA" || apo.status === "REJEITADA")
     .filter(hasCompletedAt)
     .sort(
       (a, b) =>
@@ -50,9 +61,7 @@ export default function HistoricoScreen() {
   return (
     <ScrollView contentContainerStyle={{ padding: 16 }}>
       <View style={{ marginBottom: 24 }}>
-        <Text style={{ fontSize: 32, fontWeight: "600" }}>
-          Histórico
-        </Text>
+        <Text style={{ fontSize: 32, fontWeight: "600" }}>Histórico</Text>
       </View>
 
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 16 }}>
@@ -63,9 +72,7 @@ export default function HistoricoScreen() {
             </View>
           ))
         ) : completedApos.length === 0 ? (
-          <Text style={{ color: "#9ca3af" }}>
-            Nenhuma APO concluída.
-          </Text>
+          <Text style={{ color: "#9ca3af" }}>Nenhuma APO concluída.</Text>
         ) : (
           completedApos.map((apo) => (
             <Pressable
@@ -122,9 +129,7 @@ export default function HistoricoScreen() {
                       : "#dc2626",
                 }}
               >
-                {apo.status === "APROVADA"
-                  ? "Aprovada"
-                  : "Rejeitada"}
+                {apo.status === "APROVADA" ? "Aprovada" : "Rejeitada"}
               </Text>
 
               <Text
@@ -134,8 +139,7 @@ export default function HistoricoScreen() {
                   color: "#9ca3af",
                 }}
               >
-                Concluída em{" "}
-                {new Date(apo.completedAt).toLocaleDateString("pt-BR")}
+                Concluída em {new Date(apo.completedAt).toLocaleDateString("pt-BR")}
               </Text>
             </Pressable>
           ))

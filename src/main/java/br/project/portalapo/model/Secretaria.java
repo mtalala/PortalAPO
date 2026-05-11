@@ -11,4 +11,5 @@ import lombok.*;
 public class Secretaria extends Pessoa {
 
     private String setor;
+
 }

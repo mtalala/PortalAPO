@@ -11,4 +11,5 @@ import lombok.*;
 public class MembroComite extends Pessoa {
 
     private String funcao;
+
 }

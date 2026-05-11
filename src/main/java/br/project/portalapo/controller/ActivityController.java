@@ -18,18 +18,26 @@ public class ActivityController {
     }
 
     @GetMapping
-    public ResponseEntity<List<ActivityItem>> getAll() {
-        return ResponseEntity.ok(activityService.findAll());
+    public List<ActivityItem> getAll() {
+        return activityService.findAll();
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ActivityItem> getById(@PathVariable Long id) {
-        return ResponseEntity.ok(activityService.findById(id));
+    public ActivityItem getById(@PathVariable Long id) {
+        return activityService.findById(id);
     }
 
     @PostMapping
-    public ResponseEntity<ActivityItem> create(@RequestBody ActivityItem activity) {
-        return ResponseEntity.ok(activityService.create(activity));
+    public ActivityItem create(@RequestBody ActivityItem activity) {
+        return activityService.create(activity);
+    }
+
+    @PutMapping("/{id}")
+    public ActivityItem update(
+            @PathVariable Long id,
+            @RequestBody ActivityItem activity
+    ) {
+        return activityService.update(id, activity);
     }
 
     @DeleteMapping("/{id}")

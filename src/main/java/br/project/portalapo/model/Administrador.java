@@ -11,4 +11,5 @@ import lombok.*;
 public class Administrador extends Pessoa {
 
     private String nivelAcesso;
+
 }

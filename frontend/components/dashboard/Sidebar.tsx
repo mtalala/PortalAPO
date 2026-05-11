@@ -23,11 +23,11 @@ interface SidebarProps {
 }
 
 type DashboardRoute =
-  | "/(dashboard)/historico/page"
-  | "/(dashboard)/notificacoes/page"
-  | "/(dashboard)/pendentes/page"
-  | "/(dashboard)/em-andamento/page"
-  | "/(dashboard)/concluidas/page";
+  | "/(dashboard)/historico"
+  | "/(dashboard)/notificacoes"
+  | "/(dashboard)/pendentes"
+  | "/(dashboard)/em-andamento"
+  | "/(dashboard)/concluidas";
 
 export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
   const [user, setUser] = useState<User | null>(null);
@@ -154,13 +154,13 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
           </Pressable>
         )}
         <ScrollView contentContainerStyle={styles.scroll}>
-          {navItem("/(dashboard)/historico/page", "Histórico", "clock")}
-          {navItem("/(dashboard)/notificacoes/page", "Notificações", "bell")}
+          {navItem("/(dashboard)/historico", "Histórico", "clock")}
+          {navItem("/(dashboard)/notificacoes", "Notificações", "bell")}
           <View style={styles.divider} />
           {!collapsed && <Animated.Text style={[styles.sectionLabel, { opacity: textOpacity }]}>Solicitações</Animated.Text>}
-          {navItem("/(dashboard)/pendentes/page", "Pendentes", "clock")}
-          {navItem("/(dashboard)/em-andamento/page", "Em andamento", "loader")}
-          {navItem("/(dashboard)/concluidas/page", "Concluídas", "check-circle")}
+          {navItem("/(dashboard)/pendentes", "Pendentes", "clock")}
+          {navItem("/(dashboard)/em-andamento", "Em andamento", "loader")}
+          {navItem("/(dashboard)/concluidas", "Concluídas", "check-circle")}
         </ScrollView>
         {user && (
           <View

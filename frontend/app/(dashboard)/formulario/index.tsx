@@ -1,4 +1,4 @@
-// src/app/solicitacoes/page.tsx
+// src/app/solicitacoes.tsx
 import React, { useEffect, useState } from "react";
 import {
   Alert,
@@ -17,15 +17,13 @@ import * as DocumentPicker from "expo-document-picker";
 import activitiesData from "@/packages/data/activities";
 import coordenadoresData from "@/packages/data/coordenadores";
 import programsData from "@/packages/data/programs";
-import { Activity, Coordenador, Program } from "@/packages/types/types";
+import { createApo } from "@/packages/services/apoService";
+import { getPrograms } from "@/packages/services/programService";
+import type { Activity, Coordenador, Program } from "@/packages/types/types";
 
-/**
- * Arquivo unificado (Web + Mobile + Desktop)
- */
 type SelectedFile = DocumentPicker.DocumentPickerAsset;
 
 export default function SolicitacoesPage() {
-  // ===== FORM STATE =====
   const [program, setProgram] = useState<number | null>(null);
   const [matricula, setMatricula] = useState("");
   const [nome, setNome] = useState("");
@@ -37,20 +35,21 @@ export default function SolicitacoesPage() {
   const [selectedFiles, setSelectedFiles] = useState<SelectedFile[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // ===== DATA =====
   const [programs, setPrograms] = useState<Program[]>([]);
   const [coordenadores, setCoordenadores] = useState<Coordenador[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setPrograms(programsData);
+    getPrograms()
+      .then((data) => setPrograms(data))
+      .catch(() => setPrograms(programsData))
+      .finally(() => setLoading(false));
+
     setCoordenadores(coordenadoresData);
     setActivities(activitiesData);
-    setLoading(false);
   }, []);
 
-  // ===== LOGIC =====
   const toggleActivity = (id: number) => {
     setSelectedActivities((prev) =>
       prev.includes(id) ? prev.filter((a) => a !== id) : [...prev, id]
@@ -62,11 +61,8 @@ export default function SolicitacoesPage() {
     return acc + (activity?.points ?? 0);
   }, 0);
 
-  // ===== FILE PICKER (ALL PLATFORMS) =====
   const handleFileUpload = async () => {
-    const result = await DocumentPicker.getDocumentAsync({
-      multiple: true,
-    });
+    const result = await DocumentPicker.getDocumentAsync({ multiple: true });
 
     if (result.canceled) return;
 
@@ -77,7 +73,7 @@ export default function SolicitacoesPage() {
     setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (
       !program ||
       !coordenador ||
@@ -93,26 +89,33 @@ export default function SolicitacoesPage() {
 
     setIsSubmitting(true);
 
+    const selectedActivitiesPayload = selectedActivities
+      .map((id) => activities.find((activity) => activity.id === id))
+      .filter((activity): activity is Activity => Boolean(activity));
+
     const payload = {
-      program,
+      codigoApo,
       matricula,
       nome,
-      orientador,
-      coordenador,
+      program: programs.find((p) => p.id === program)?.name ?? "",
       semestre,
-      codigoApo,
-      atividades: selectedActivities,
+      orientador,
+      coordenador: coordenadores.find((c) => c.id === coordenador)?.name ?? "",
+      status: "PENDENTE_ORIENTADOR" as const,
+      dataSubmissao: new Date().toISOString().split("T")[0],
       totalPoints,
-      files: selectedFiles,
-      createdAt: new Date().toISOString(),
+      activities: selectedActivitiesPayload,
+      files: selectedFiles.map((file) => ({
+        name: file.name ?? file.uri.split("/").pop() ?? "arquivo",
+        url: file.uri,
+      })),
+      approvals: [],
+      requiredCommissionApprovals: 3,
     };
 
-    console.log("Payload:", payload);
-
-    setTimeout(() => {
-      setIsSubmitting(false);
-      Alert.alert("Sucesso", "Formulário enviado (mock)");
-
+    try {
+      await createApo(payload as any);
+      Alert.alert("Sucesso", "Formulário enviado com sucesso.");
       setProgram(null);
       setMatricula("");
       setNome("");
@@ -122,19 +125,21 @@ export default function SolicitacoesPage() {
       setCodigoApo("");
       setSelectedActivities([]);
       setSelectedFiles([]);
-    }, 1000);
+    } catch (error) {
+      Alert.alert("Erro", "Não foi possível enviar a solicitação.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (loading) {
     return <Text style={{ padding: 16 }}>Carregando dados...</Text>;
   }
 
-  // ===== UI =====
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>Enviar Nova Solicitação</Text>
 
-      {/* PROGRAMAS */}
       <Text style={styles.label}>Selecionar programa</Text>
       {programs.map((p) => (
         <Pressable
@@ -155,7 +160,6 @@ export default function SolicitacoesPage() {
       <Input label="Semestre" value={semestre} onChange={setSemestre} />
       <Input label="Código da APO" value={codigoApo} onChange={setCodigoApo} />
 
-      {/* COORDENADORES */}
       <Text style={styles.label}>Selecionar Coordenador</Text>
       {coordenadores.map((c) => (
         <Pressable
@@ -170,7 +174,6 @@ export default function SolicitacoesPage() {
         </Pressable>
       ))}
 
-      {/* ATIVIDADES */}
       <Text style={styles.label}>Atividades desenvolvidas</Text>
       {activities.map((a) => {
         const selected = selectedActivities.includes(a.id);
@@ -193,7 +196,6 @@ export default function SolicitacoesPage() {
 
       <Text style={styles.total}>Total de pontos: {totalPoints}</Text>
 
-      {/* UPLOAD */}
       <Pressable style={styles.upload} onPress={handleFileUpload}>
         <Text style={styles.uploadText}>Anexar arquivos</Text>
       </Pressable>
@@ -215,7 +217,6 @@ export default function SolicitacoesPage() {
         />
       )}
 
-      {/* SUBMIT */}
       <Pressable
         onPress={handleSubmit}
         disabled={isSubmitting}
@@ -231,8 +232,6 @@ export default function SolicitacoesPage() {
     </ScrollView>
   );
 }
-
-/* ===== COMPONENTS ===== */
 
 function Input({
   label,
@@ -251,8 +250,6 @@ function Input({
   );
 }
 
-/* ===== STYLES ===== */
-
 const styles = StyleSheet.create({
   container: { padding: 16 },
   title: { fontSize: 28, fontWeight: "bold", marginBottom: 16 },
@@ -260,63 +257,52 @@ const styles = StyleSheet.create({
   input: {
     borderWidth: 1,
     borderColor: "#d1d5db",
-    borderRadius: 6,
-    padding: 8,
-    marginTop: 4,
+    borderRadius: 12,
+    padding: 12,
+    marginTop: 8,
   },
   option: {
-    padding: 10,
     borderWidth: 1,
     borderColor: "#d1d5db",
-    borderRadius: 6,
-    marginBottom: 6,
+    borderRadius: 12,
+    padding: 12,
+    marginTop: 8,
   },
   optionActive: {
-    borderColor: "#dc2626",
+    backgroundColor: "#eff6ff",
+    borderColor: "#e80000",
   },
   activity: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 10,
     borderWidth: 1,
     borderColor: "#d1d5db",
-    borderRadius: 6,
-    marginBottom: 6,
+    borderRadius: 12,
+    padding: 12,
+    marginTop: 8,
   },
-  total: { marginTop: 8, fontWeight: "600" },
+  total: { marginTop: 12, fontWeight: "700" },
   upload: {
     marginTop: 16,
+    borderWidth: 1,
+    borderColor: "#d1d5db",
+    borderRadius: 12,
     padding: 14,
-    borderWidth: 2,
-    borderStyle: "dashed",
-    borderColor: "#9ca3af",
-    borderRadius: 8,
     alignItems: "center",
   },
-  uploadText: {
-    color: "#374151",
-    fontWeight: "500",
-  },
+  uploadText: { color: "#2563eb", fontWeight: "600" },
   fileItem: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 8,
-    padding: 8,
-    borderWidth: 1,
-    borderColor: "#d1d5db",
-    borderRadius: 6,
+    paddingVertical: 8,
   },
-  remove: {
-    color: "#dc2626",
-    fontWeight: "bold",
-    marginLeft: 8,
-  },
+  remove: { color: "#dc2626", fontSize: 18, paddingHorizontal: 12 },
   submit: {
     marginTop: 24,
-    backgroundColor: "#dc2626",
-    padding: 14,
-    borderRadius: 8,
+    backgroundColor: "#00bb41",
+    borderRadius: 12,
+    paddingVertical: 16,
     alignItems: "center",
   },
-  submitText: { color: "#fff", fontWeight: "600" },
+  submitText: { color: "#fff", fontWeight: "700" },
 });

@@ -12,4 +12,6 @@ public class Orientador extends Pessoa {
 
     private String areaAtuacao;
     private String titulacao;
+
+
 }

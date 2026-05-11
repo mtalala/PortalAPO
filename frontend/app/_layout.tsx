@@ -15,7 +15,7 @@ export default function RootLayout() {
       <UserProvider>
         <Stack>
           {/* Aqui você registra apenas telas reais, não layouts */}
-          {/* Exemplo: <Stack.Screen name="(dashboard)/pendentes/page" /> */}
+          {/* Exemplo: <Stack.Screen name="(dashboard)/pendentes" /> */}
         </Stack>
         <StatusBar style="auto" />
       </UserProvider>

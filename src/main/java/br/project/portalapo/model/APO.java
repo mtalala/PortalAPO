@@ -60,6 +60,22 @@ public class APO {
     @Builder.Default
     private List<ApprovalItem> approvals = new ArrayList<>();
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     // =========================
     // REGRAS
     // =========================

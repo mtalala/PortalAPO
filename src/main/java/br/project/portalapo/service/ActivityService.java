@@ -2,6 +2,7 @@ package br.project.portalapo.service;
 
 import br.project.portalapo.model.ActivityItem;
 import br.project.portalapo.repository.ActivityRepository;
+
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -26,6 +27,13 @@ public class ActivityService {
 
     public ActivityItem create(ActivityItem activity) {
         return activityRepository.save(activity);
+    }
+
+    public ActivityItem update(Long id, ActivityItem data) {
+        ActivityItem existing = findById(id);
+        existing.setLabel(data.getLabel());
+        existing.setPoints(data.getPoints());
+        return activityRepository.save(existing);
     }
 
     public void delete(Long id) {

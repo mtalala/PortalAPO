@@ -14,4 +14,6 @@ public class Coordenador extends Pessoa {
 
     private LocalDate mandatoInicio;
     private LocalDate mandatoFim;
+
+
 }

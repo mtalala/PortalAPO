@@ -5,42 +5,52 @@ import { ScrollView, Text, useWindowDimensions, View } from "react-native";
 import RequestCard from "@/components/dashboard/RequestCard";
 import RequestCardSkeleton from "@/components/dashboard/RequestCardSkeleton";
 
-import { apos } from "@/packages/data/apos";
+import { getApos } from "@/packages/services/apoService";
 import { getApoVisualStatus } from "@/packages/domain/apoVisualStatus";
+import type { Apo } from "@/packages/types/apo";
 
-export default function PendentesScreen() {
+export default function ConcluidasScreen() {
+  const [apos, setApos] = useState<Apo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { width } = useWindowDimensions();
   const { user } = useUser();
 
-  // Responsivo: 1, 2 ou 3 colunas
   const getColumns = () => {
-    if (width >= 1024) return 4; // desktop / macOS / Windows
-    if (width >= 768) return 4;  // tablets / web médio
-    return 1;                     // mobile
+    if (width >= 1024) return 4;
+    if (width >= 768) return 4;
+    return 1;
   };
 
   useEffect(() => {
-    // simula loading (remover quando usar API real)
-    const timer = setTimeout(() => setIsLoading(false), 700);
-    return () => clearTimeout(timer);
+    let isActive = true;
+    getApos()
+      .then((data) => {
+        if (isActive) setApos(data);
+      })
+      .catch(() => {
+        if (isActive) setApos([]);
+      })
+      .finally(() => {
+        if (isActive) setIsLoading(false);
+      });
+    return () => {
+      isActive = false;
+    };
   }, []);
 
   if (!user) return null;
 
-  const pendentes = apos.filter(
-    (apo) => getApoVisualStatus(apo.status) === "PENDENTE"
+  const concluidas = apos.filter(
+    (apo) => getApoVisualStatus(apo.status) === "CONCLUIDA"
   );
 
   return (
     <ScrollView contentContainerStyle={{ padding: 16 }}>
-      {/* Header */}
       <View style={{ marginBottom: 24 }}>
-        <Text style={{ fontSize: 32, fontWeight: "700" }}>Pendentes</Text>
-        <Text style={{ color: "#6b7280" }}>{pendentes.length} APOs pendentes</Text>
+        <Text style={{ fontSize: 32, fontWeight: "700" }}>Concluídas</Text>
+        <Text style={{ color: "#6b7280" }}>{concluidas.length} APOs concluídas</Text>
       </View>
 
-      {/* Grid de cards */}
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 16 }}>
         {isLoading
           ? Array.from({ length: 6 }).map((_, i) => (
@@ -48,16 +58,15 @@ export default function PendentesScreen() {
                 <RequestCardSkeleton />
               </View>
             ))
-          : pendentes.length === 0
+          : concluidas.length === 0
           ? (
-            <Text style={{ color: "#9ca3af" }}>Nenhuma APO pendente.</Text>
+            <Text style={{ color: "#9ca3af" }}>Nenhuma APO concluída.</Text>
           )
-          : pendentes.map((apo) => (
+          : concluidas.map((apo) => (
               <View key={apo.id} style={{ flexBasis: `${100 / getColumns()}%` }}>
                 <RequestCard apo={apo} />
               </View>
-            ))
-        }
+            ))}
       </View>
     </ScrollView>
   );
