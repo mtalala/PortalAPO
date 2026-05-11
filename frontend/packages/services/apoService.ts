@@ -47,7 +47,7 @@ export async function rejectApo(id: string): Promise<Apo> {
   });
 }
 
-export async function deleteApo(id: number): Promise<void> {
+export async function deleteApo(id: string): Promise<void> {
   return request<void>(`${APO_PATH}/${id}`, {
     method: "DELETE",
   });

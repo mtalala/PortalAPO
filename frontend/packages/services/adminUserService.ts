@@ -1,31 +1,34 @@
-import { request } from './api';
+import request from './api';
 
 export interface AdminUser {
-  id?: number;
+  id: string;
   username: string;
   password: string;
   role: string;
   ativo: boolean;
-  pessoa?: any; // Assuming Pessoa type
+  pessoa?: any;
 }
 
 export const adminUserService = {
   getAll: async (): Promise<AdminUser[]> => {
     return request<AdminUser[]>('/users');
   },
+
   create: async (user: Omit<AdminUser, 'id'>): Promise<AdminUser> => {
     return request<AdminUser>('/users', {
       method: 'POST',
       body: JSON.stringify(user),
     });
   },
-  update: async (id: number, user: AdminUser): Promise<AdminUser> => {
+
+  update: async (id: string, user: Partial<AdminUser>): Promise<AdminUser> => {
     return request<AdminUser>(`/users/${id}`, {
       method: 'PUT',
       body: JSON.stringify(user),
     });
   },
-  delete: async (id: number): Promise<void> => {
+
+  delete: async (id: string): Promise<void> => {
     return request<void>(`/users/${id}`, {
       method: 'DELETE',
     });

@@ -57,18 +57,32 @@ export default function EditApoScreen() {
   return (
     <View style={{ padding: 20 }}>
       <Text style={{ fontSize: 24, marginBottom: 20 }}>Editar APO</Text>
-      <TextInput
-        placeholder="Título"
-        value={apo.title}
-        onChangeText={(text) => setApo({ ...apo, title: text })}
+     <TextInput
+        placeholder="Nome"
+        value={apo.nome ?? ""}
+        onChangeText={(text) => setApo({ ...apo, nome: text })}
         style={{ borderWidth: 1, padding: 10, marginBottom: 10 }}
       />
+
       <TextInput
-        placeholder="Descrição"
-        value={apo.description}
-        onChangeText={(text) => setApo({ ...apo, description: text })}
-        multiline
-        style={{ borderWidth: 1, padding: 10, marginBottom: 10, height: 100 }}
+        placeholder="Matrícula"
+        value={apo.matricula ?? ""}
+        onChangeText={(text) => setApo({ ...apo, matricula: text })}
+        style={{ borderWidth: 1, padding: 10, marginBottom: 10 }}
+      />
+
+      <TextInput
+        placeholder="Programa"
+        value={apo.program ?? ""}
+        onChangeText={(text) => setApo({ ...apo, program: text })}
+        style={{ borderWidth: 1, padding: 10, marginBottom: 10 }}
+      />
+
+      <TextInput
+        placeholder="Semestre"
+        value={apo.semestre ?? ""}
+        onChangeText={(text) => setApo({ ...apo, semestre: text })}
+        style={{ borderWidth: 1, padding: 10, marginBottom: 10 }}
       />
       {/* Adicionar mais campos conforme necessário */}
       <Button title={loading ? 'Atualizando...' : 'Atualizar'} onPress={handleSubmit} disabled={loading} />

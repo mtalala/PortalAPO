@@ -1,4 +1,3 @@
-// src/app/apo/[id].tsx
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
@@ -16,37 +15,56 @@ import { useUser } from "@/packages/context/UserContext";
 import { canApproveApo } from "@/packages/domain/apoRules";
 import { getApoStatusColor } from "@/packages/domain/apoStatusColor";
 import { getApoStatusLabel } from "@/packages/domain/apoStatusLabel";
-import { approveApo, getApoById, rejectApo } from "@/packages/services/apoService";
+import {
+  approveApo,
+  getApoById,
+  rejectApo,
+} from "@/packages/services/apoService";
 import type { Apo } from "@/packages/types/apo";
 
 export default function ApoViewScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const rawId = useLocalSearchParams<{ id?: string | string[] }>().id;
+  const id = Array.isArray(rawId) ? rawId[0] : rawId;
+
   const { user } = useUser();
   const { width } = useWindowDimensions();
+
   const [apo, setApo] = useState<Apo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const isDesktop =
-    (Platform.OS === "web" && width >= 768) || Platform.OS === "windows" || Platform.OS === "macos";
+    (Platform.OS === "web" && width >= 768) ||
+    Platform.OS === "windows" ||
+    Platform.OS === "macos";
 
   useEffect(() => {
-    if (!id) return;
+    if (!id) {
+      setIsLoading(false);
+      setError("ID não informado");
+      return;
+    }
 
     let isActive = true;
-    setIsLoading(true);
-    setError(null);
 
-    getApoById(id)
-      .then((data) => {
+    const load = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        const data = await getApoById(id);
+
         if (isActive) setApo(data);
-      })
-      .catch((err) => {
-        if (isActive) setError(err?.message ?? "Erro ao carregar APO");
-      })
-      .finally(() => {
+      } catch (err: any) {
+        if (isActive) {
+          setError(err?.message ?? "Erro ao carregar APO");
+        }
+      } finally {
         if (isActive) setIsLoading(false);
-      });
+      }
+    };
+
+    load();
 
     return () => {
       isActive = false;
@@ -55,27 +73,37 @@ export default function ApoViewScreen() {
 
   const handleApprove = async () => {
     if (!apo || !user?.role) return;
+
     try {
       const updated = await approveApo(apo.id, user.role);
       setApo(updated);
-      router.replace({ pathname: "/apos/[id]", params: { id: apo.id } });
-    } catch (err) {
+
+      router.replace({
+        pathname: "/apos/[id]",
+        params: { id: apo.id },
+      });
+    } catch (err: any) {
       setError(err?.message ?? "Não foi possível aprovar");
     }
   };
 
   const handleReject = async () => {
     if (!apo) return;
+
     try {
       const updated = await rejectApo(apo.id);
       setApo(updated);
-      router.replace({ pathname: "/apos/[id]", params: { id: apo.id } });
-    } catch (err) {
+
+      router.replace({
+        pathname: "/apos/[id]",
+        params: { id: apo.id },
+      });
+    } catch (err: any) {
       setError(err?.message ?? "Não foi possível rejeitar");
     }
   };
 
-  const Card: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  const Card = ({ children }: { children: React.ReactNode }) => (
     <View
       style={{
         backgroundColor: "#fff",
@@ -94,7 +122,13 @@ export default function ApoViewScreen() {
     </View>
   );
 
-  const InfoRow: React.FC<{ label: string; value: string | number }> = ({ label, value }) => (
+  const InfoRow = ({
+    label,
+    value,
+  }: {
+    label: string;
+    value: string | number;
+  }) => (
     <View
       style={{
         width: isDesktop ? "48%" : "100%",
@@ -102,15 +136,29 @@ export default function ApoViewScreen() {
       }}
     >
       <Text style={{ fontSize: 12, color: "#6b7280" }}>{label}</Text>
-      <Text style={{ fontWeight: "500", color: "#111827", fontSize: 14 }}>{value}</Text>
+      <Text style={{ fontWeight: "500", color: "#111827", fontSize: 14 }}>
+        {value}
+      </Text>
     </View>
   );
 
   if (!user) return null;
-  if (!id) return <Text style={{ padding: 24 }}>ID inválido.</Text>;
-  if (isLoading) return <Text style={{ padding: 24 }}>Carregando APO...</Text>;
-  if (error) return <Text style={{ padding: 24, color: "#dc2626" }}>{error}</Text>;
-  if (!apo) return <Text style={{ padding: 24 }}>APO não encontrada.</Text>;
+
+  if (!id) {
+    return <Text style={{ padding: 24 }}>ID inválido.</Text>;
+  }
+
+  if (isLoading) {
+    return <Text style={{ padding: 24 }}>Carregando APO...</Text>;
+  }
+
+  if (error) {
+    return <Text style={{ padding: 24, color: "#dc2626" }}>{error}</Text>;
+  }
+
+  if (!apo) {
+    return <Text style={{ padding: 24 }}>APO não encontrada.</Text>;
+  }
 
   const allowedToApprove = canApproveApo(apo, user);
 
@@ -122,7 +170,6 @@ export default function ApoViewScreen() {
           paddingTop: 24,
           paddingBottom: 40,
         }}
-        showsHorizontalScrollIndicator={false}
       >
         <View
           style={{
@@ -137,11 +184,8 @@ export default function ApoViewScreen() {
               fontSize: isDesktop ? 32 : 22,
               fontWeight: "700",
               color: "#111827",
-              flexShrink: 1,
               marginBottom: isDesktop ? 0 : 8,
             }}
-            numberOfLines={2}
-            ellipsizeMode="tail"
           >
             APO {apo.codigoApo}
           </Text>
@@ -161,16 +205,11 @@ export default function ApoViewScreen() {
         </View>
 
         <Card>
-          <Text style={{ fontWeight: "700", fontSize: 16, marginBottom: 16, color: "#111827" }}>
+          <Text style={{ fontWeight: "700", marginBottom: 16 }}>
             Dados principais
           </Text>
-          <View
-            style={{
-              flexDirection: "row",
-              flexWrap: "wrap",
-              justifyContent: "space-between",
-            }}
-          >
+
+          <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
             <InfoRow label="Aluno" value={apo.nome} />
             <InfoRow label="Matrícula" value={apo.matricula} />
             <InfoRow label="Programa" value={apo.program} />
@@ -181,43 +220,29 @@ export default function ApoViewScreen() {
         </Card>
 
         <Card>
-          <Text style={{ fontWeight: "700", fontSize: 16, marginBottom: 16, color: "#111827" }}>
+          <Text style={{ fontWeight: "700", marginBottom: 16 }}>
             Atividades
           </Text>
+
           {apo.activities.map((a, i) => (
-            <Text
-              key={i}
-              style={{ marginBottom: 8, fontSize: 14, color: "#374151" }}
-              numberOfLines={1}
-              ellipsizeMode="tail"
-            >
+            <Text key={i} style={{ marginBottom: 6 }}>
               • {a.label} — {a.points} pts
             </Text>
           ))}
-          <Text style={{ marginTop: 12, fontWeight: "700", fontSize: 14, color: "#111827" }}>
+
+          <Text style={{ marginTop: 12, fontWeight: "700" }}>
             Total: {apo.totalPoints} pts
           </Text>
         </Card>
 
         <Card>
-          <Text style={{ fontWeight: "700", fontSize: 16, marginBottom: 16, color: "#111827" }}>
+          <Text style={{ fontWeight: "700", marginBottom: 16 }}>
             Arquivos
           </Text>
+
           {apo.files.map((f, i) => (
-            <Pressable
-              key={i}
-              onPress={() => Linking.openURL(f.url)}
-              style={{ marginBottom: 8 }}
-            >
-              <Text
-                style={{
-                  color: "#2563eb",
-                  textDecorationLine: "underline",
-                  fontSize: 14,
-                }}
-                numberOfLines={1}
-                ellipsizeMode="tail"
-              >
+            <Pressable key={i} onPress={() => Linking.openURL(f.url)}>
+              <Text style={{ color: "#2563eb", marginBottom: 6 }}>
                 {f.name}
               </Text>
             </Pressable>
@@ -225,37 +250,31 @@ export default function ApoViewScreen() {
         </Card>
 
         {allowedToApprove && (
-          <View
-            style={{
-              flexDirection: isDesktop ? "row" : "column",
-              marginTop: 8,
-              gap: 12,
-            }}
-          >
+          <View style={{ flexDirection: "row", gap: 12 }}>
             <Pressable
               onPress={handleApprove}
               style={{
                 backgroundColor: "#16a34a",
-                paddingVertical: 14,
+                padding: 14,
                 borderRadius: 8,
-                flex: isDesktop ? 0 : 1,
+                flex: 1,
                 alignItems: "center",
               }}
             >
-              <Text style={{ color: "#fff", fontWeight: "600", fontSize: 16 }}>Aprovar</Text>
+              <Text style={{ color: "#fff" }}>Aprovar</Text>
             </Pressable>
 
             <Pressable
               onPress={handleReject}
               style={{
                 backgroundColor: "#dc2626",
-                paddingVertical: 14,
+                padding: 14,
                 borderRadius: 8,
-                flex: isDesktop ? 0 : 1,
+                flex: 1,
                 alignItems: "center",
               }}
             >
-              <Text style={{ color: "#fff", fontWeight: "600", fontSize: 16 }}>Rejeitar</Text>
+              <Text style={{ color: "#fff" }}>Rejeitar</Text>
             </Pressable>
           </View>
         )}
