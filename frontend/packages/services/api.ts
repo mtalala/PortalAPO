@@ -1,14 +1,7 @@
 import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const BASE_URL = (() => {
-  if (Platform.OS === "android") {
-    return "http://10.0.2.2:8080/api";
-  }
-
-  // iOS + Web
-  return "http://localhost:8080/api";
-})();
+const BASE_URL = "http://54.162.60.154:8080/api";
 
 async function getToken(): Promise<string | null> {
   return AsyncStorage.getItem("token");
